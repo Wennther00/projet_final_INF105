@@ -1,0 +1,101 @@
+---
+title: "Regression lineaire dans R avec wbstats"
+author: " AIME wennther,DESHOMMES Rodolphe RACINE Jhon Peterson, LAGUERRE Jennine Gemima "
+date: "2023-06-15"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## (1) interet du modele
+
+Dans la comprehension de l'evolution ou la tendance d'un phenomene,il s'averera necessairement utile d'explorer ses differents facteurs causaux pour pouvoir le mieux cerner.puis,dans une dynamique de long termiste de realiser des perspectives previsionnelles.Dans cette veine,il importe de mettre en relation quatre (4) variables macroeconomiques:inflation.taux de change, importation et exportation.
+Dans ce cas-ci,l'objectiif est de voir comment l'inflation,comme variable endogene ou reponse,est influence par les trois (3) variables: taux de change, importation et exportation comme variable explicative ou exogene.
+
+## Downloading data from an API 
+
+```{r data}
+library(wbstats)
+library(reshape)
+library(reshape,warn.conflicts = FALSE)
+library(dplyr,warn.conflicts = FALSE)
+inflation=wbsearch("inflation,consumerprices(annual%)")
+taux_change=wbsearch("official exchange rate,period average")
+import=wbsearch("imports Merchandise,Customs,current US$,millions")
+export=wbsearch("Merchandise exports (current US$)")
+download=wb(country ="HTI",
+            indicator = c("FP.CPI.TOTL.ZG", 
+                          "DPANUSLCU",
+                          "DMGSRMRCHNSCD",
+                          "TX.VAL.MRCH.CD.WT"), startdate = 1993, enddate = 2013)
+long=dplyr::select(download,date,indicator,country,value)
+temp=melt(long,id=c("date","indicator","country"))
+data=cast(temp, country+date~indicator)
+names(data)
+y=data$`Inflation, consumer prices (annual %)`
+x1=data$`Official exchange rate, LCU per USD, period average,,`
+x2=data$`Imports Merchandise, Customs, current US$, millions, not seas. adj.`
+x3=data$`Merchandise exports (current US$)`
+```
+
+##(2) nuage de point ajuste a une droite de regression lineaire
+
+```{r }
+plot(x1,y,ylab="inflation",xlab="taux de change")
+cor(x1,y)
+abline(lm(y~x1))
+```
+
+```{r }
+plot(x2,y,ylab="inflation",xlab="importation")
+cor(x2,y)
+abline(lm(y~x2))
+```
+
+```{r }
+plot(x3,y,ylab="inflation",xlab="exportation")
+cor(x3,y)
+abline(lm(y~x3))
+```
+
+## (3) tableau de resultats de la regression lineaire multiple
+
+```{r }
+modele=lm(y~x1+x2+x3)
+summary(modele)
+resultat_reg=summary(modele)
+resultat_reg
+resultat_reg$coefficients
+resultat_reg$coefficients[,1]
+resultat_reg$coefficients[,4]
+resultat_reg$adj.r.squared
+resultat_reg$fstatistic
+resultat_reg$fstatistic[1]
+coefficients=c(2.133345e+01,  3.801376e-01,  2.290677e-03, -5.674661e-08)
+prob_test_student=c(0.0007083467, 0.2294093349, 0.6521316069, 0.0251056384)
+R2_ajuste=c(0.4577045)
+Fstat.=0.4577045
+p_value=c(0.003638)
+tableau_resultats=cbind(coefficients,prob_test_student,R2_ajuste,p_value)
+
+```
+
+## (4) Graphique en nuage de point ajuste a une droite de regression lineaire
+## etablissant le lien entre les residues (erreurs) et valeurs estimees (fitted values) 
+
+```{r }
+modele$residuals
+residuals=modele$residuals
+residuals
+modele$fitted.values
+fitted.values=modele$fitted.values
+fitted.values
+plot(residuals,fitted.values)
+```
+
+## (5) commentaire :
+
+Les points qui forment le diagramme de dispersion sont tres eloignes. Les erreurs sont alors importantes. par consequent, avec le modele de regression lineaire, les valeurs du taux de change,de l'importation et de l'exportation ne permettront pas de mieux predire l'inflation,c-a-d le niveau general des prix en Haiti,allant de 1993 a 2013.
+
